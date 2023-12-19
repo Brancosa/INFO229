@@ -85,7 +85,7 @@ class JuegoBuscaminas:
                 self.botones[x][y].bind('<Button-1>', lambda e, x=x, y=y: self.click(x, y))
                 self.botones[x][y].bind('<Button-3>', lambda e, x=x, y=y: self.marcar_banderas(x, y))
 
-        self.root.grid_columnconfigure(self.ancho, minsize=150)
+        self.root.grid_columnconfigure(self.ancho, minsize=200)
 
         self.texto = tk.Label(self.root, text="Buscaminas!", font=("Arial", 15))
         self.texto.grid(row=0, column=self.ancho)
@@ -98,6 +98,10 @@ class JuegoBuscaminas:
 
         self.boton_reinicio = tk.Button(self.root, text="R", command=self.reiniciar_juego, font=("Arial", 15))
         self.boton_reinicio.grid(row=3, column=self.ancho)
+
+        self.contador_minas = tk.Label(self.root, text=f"Banderas restantes: {self.minas}", font=("Arial", 12))
+        self.contador_minas.grid(row=4, column=self.ancho)
+
 
     def reiniciar_juego(self):
         # Reinicia el juego al presionar el botón de reinicio
@@ -123,23 +127,31 @@ class JuegoBuscaminas:
         self.juego_en_progreso = True
         self.run()
 
+
     def marcar_banderas(self, x, y):
-        # Maneja la marca de banderas en una casilla
         defaultbg = self.root.cget('bg')
-        if self.tablero.casillas[x][y].marcada:
+        if self.tablero.casillas[x][y].marcada or self.tablero.casillas[x][y].descubierta:
             return
-        self.tablero.casillas[x][y].banderas = not self.tablero.casillas[x][y].banderas
+
         if self.tablero.casillas[x][y].banderas:
-            self.botones[x][y].config(text='B', bg='tomato', fg='white')
-        else:
+            self.tablero.casillas[x][y].banderas = False
             self.botones[x][y].config(text='', bg=defaultbg)
+        else:
+            # Verifica si hay espacio para más banderas
+            banderas_colocadas = sum(1 for fila in self.tablero.casillas for casilla in fila if casilla.banderas)
+            if banderas_colocadas < self.minas:
+                self.tablero.casillas[x][y].banderas = True
+                self.botones[x][y].config(text='B', bg='tomato', fg='white')
+
+        self.contador_minas.config(text=f"Banderas restantes: {self.minas - sum(1 for fila in self.tablero.casillas for casilla in fila if casilla.banderas)}")
+
 
     def click(self, x, y):
         # Maneja el evento de clic en una casilla
-        if self.tablero.casillas[x][y].tipo == TipoCasilla.Mina:
+        if self.tablero.casillas[x][y].tipo == TipoCasilla.Mina and not self.tablero.casillas[x][y].banderas:
             self.botones[x][y].config(text='M', state='disabled', bg='firebrick1')
             self.game_over("Derrota")
-        else:
+        elif not self.tablero.casillas[x][y].banderas:
             self.revelar_casilla(x, y)
 
     def revelar_casilla(self, x, y):
